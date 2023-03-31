@@ -17,6 +17,7 @@
 		525008ED29D4095100C7FF82 /* SwiftUICharts in Frameworks */ = {isa = PBXBuildFile; productRef = 525008EC29D4095100C7FF82 /* SwiftUICharts */; };
 		525008F129D41EF400C7FF82 /* GraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525008F029D41EF400C7FF82 /* GraphView.swift */; };
 		525008F329D421E800C7FF82 /* RecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525008F229D421E800C7FF82 /* RecordView.swift */; };
+		52726DF429D5C9CD00D7FFDA /* TextFieldAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52726DF329D5C9CD00D7FFDA /* TextFieldAlertView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +50,7 @@
 		525008DE29D3EE4500C7FF82 /* Momentum_measurementUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Momentum_measurementUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		525008F029D41EF400C7FF82 /* GraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphView.swift; sourceTree = "<group>"; };
 		525008F229D421E800C7FF82 /* RecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordView.swift; sourceTree = "<group>"; };
+		52726DF329D5C9CD00D7FFDA /* TextFieldAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextFieldAlertView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -103,6 +105,7 @@
 				525008C129D3EE4300C7FF82 /* Momentum_measurementApp.swift */,
 				525008C329D3EE4300C7FF82 /* ContentView.swift */,
 				525008F229D421E800C7FF82 /* RecordView.swift */,
+				52726DF329D5C9CD00D7FFDA /* TextFieldAlertView.swift */,
 				525008F029D41EF400C7FF82 /* GraphView.swift */,
 				525008C529D3EE4500C7FF82 /* Assets.xcassets */,
 				525008C729D3EE4500C7FF82 /* Preview Content */,
@@ -275,6 +278,7 @@
 				525008F329D421E800C7FF82 /* RecordView.swift in Sources */,
 				525008C229D3EE4300C7FF82 /* Momentum_measurementApp.swift in Sources */,
 				525008F129D41EF400C7FF82 /* GraphView.swift in Sources */,
+				52726DF429D5C9CD00D7FFDA /* TextFieldAlertView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

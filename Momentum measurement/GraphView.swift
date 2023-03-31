@@ -28,12 +28,6 @@ struct GraphView: View {
             LineView(data: accelerationData, title: "Acceleration")
             LineView(data: gyroData, title: "Gyro")
         }
-//        .onAppear {
-//            startMotionUpdates()
-//        }
-//        .onDisappear {
-//            stopMotionUpdates()
-//        }
     }
     
     func startMotionUpdates() {
