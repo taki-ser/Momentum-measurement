@@ -8,21 +8,28 @@
 
 import SwiftUI
 import CoreMotion
-
+//struct data {
+//     @State var listOfPath: URL
+//     @State var
+//}
 struct ContentView: View {
+    @State var listOfPathOriginal: [URL] = []
     var body: some View {
         TabView {
-            GraphView()
+            GraphView(listOfPath: $listOfPathOriginal)
                 .tabItem {
                     Image(systemName: "chart.bar")
                     Text("Graph")
                 }
-            RecordView()
+            RecordView(listOfPath: $listOfPathOriginal)
                 .tabItem {
                     Image(systemName: "list.bullet")
                     Text("Records")
                 }
         }
+        .onAppear(perform: {
+            listOfPathOriginal = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
+               })
     }
 }
 
@@ -32,3 +39,4 @@ struct ContentView_Previews: PreviewProvider {
         ContentView()
     }
 }
+  

@@ -27,9 +27,8 @@ struct MotionData {
 struct RecordView: View {
     @State private var records: [Record] = []
     @State private var activityFolderName: String = ""
-    @State var listOfPath: [URL] = []
+    @Binding var listOfPath: [URL]
     @State private var showingAddFolderAlart = false
-    @State var indexOfDeleteItem: Int = 0
     @State private var showingDeleteAlert = false
     @State private var deleteCandidate: URL?
     var body: some View {
@@ -40,25 +39,12 @@ struct RecordView: View {
                         ForEach(listOfPath, id: \.self) { url in
                             ItemCell(url:url)
                         }
-//                        .onDelete { (offsets) in
-//                            if let index: Int = offsets.first {
-//                                indexOfDeleteItem = index
-//                                self.showingDeleteAlert = true
-//                            }
-//                        }
                         .onDelete { (indexSet) in
                                             if let index = indexSet.first {
                                                 deleteCandidate = listOfPath[index]
                                                 showingDeleteAlert = true
                                             }
                                         }
-//                        .alert(isPresented: $showingDeleteAlert) {
-//                            Alert(title: Text("警告"),
-//                                  message: Text("\"\(listOfPath[indexOfDeleteItem].lastPathComponent    )\"は削除されます。"),
-//                                  primaryButton: .cancel(Text("キャンセル")),    // キャンセル用
-//                                  secondaryButton: .destructive(Text("削除"), action: {removeItem(atPath: listOfPath[indexOfDeleteItem])})
-//                            )   // 破壊的変更用
-//                        }
                         .alert(isPresented: $showingDeleteAlert) {
                             Alert(title: Text("削除の確認"),
                                   message: Text("「\(deleteCandidate?.lastPathComponent ?? "")」を削除しますか？"),
@@ -66,6 +52,7 @@ struct RecordView: View {
                                   secondaryButton: .destructive(Text("削除"), action: {
                                     if let candidate = deleteCandidate {
                                         removeItem(atPath: candidate)
+                                        listOfPath = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
                                         deleteCandidate = nil
                                     }
                                   }))
@@ -98,9 +85,6 @@ struct RecordView: View {
                         }
                     }
                 }
-                .onAppear(perform: {
-                           listOfPath = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
-                       })
             }
 
         
@@ -119,16 +103,7 @@ struct RecordView: View {
         }
     }
     
-    func removeItem(atPath path: URL) {
-        let fileManager = FileManager.default
-        do {
-            try fileManager.removeItem(at: path)
-            listOfPath = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
-        } catch {
-            fatalError("Failed to remove item at path \(path). Error: \(error.localizedDescription)")
-        }
-    }
-    
+
 
     func saveRecord(directory: URL) {
         let date = Date()
@@ -166,19 +141,38 @@ struct ItemCell: View {
 
 struct SubFolder: View {
     @State private var showingDeleteAlert = false
-    @State var indexOfDeleteItem: Int = 0
+    @State var listOfPath: [URL] = []
+    @State private var showingDeleteAlertSub = false
+    @State private var deleteCandidate: URL?
     let url: URL
     var body: some View {
         List {
             ForEach(getFolder(url: url), id: \.self) { url in
                 ItemCell(url:url)
             }
+            .onDelete { (indexSet) in
+                                if let index = indexSet.first {
+                                    deleteCandidate = listOfPath[index]
+                                    showingDeleteAlertSub = true
+                                }
+                            }
+            .alert(isPresented: $showingDeleteAlert) {
+                Alert(title: Text("削除の確認"),
+                      message: Text("「\(deleteCandidate?.lastPathComponent ?? "")」を削除しますか？"),
+                      primaryButton: .cancel(Text("キャンセル")),
+                      secondaryButton: .destructive(Text("削除"), action: {
+                        if let candidate = deleteCandidate {
+                            removeItem(atPath: candidate)
+                            deleteCandidate = nil
+                        }
+                      }))
+            }
         }
         .navigationBarTitle(url.lastPathComponent, displayMode: .inline)
     }
     
     func deleteFile(atPath path: URL) {
-//        documents.removeItem(atPath: path)
+        removeItem(atPath: path)
         print("\(path)はデリートされた\n")
         self.showingDeleteAlert = false
     }
@@ -188,12 +182,7 @@ struct SubFolder: View {
 func getFolder(url: URL) -> [URL] {
     do {
         /// フォルダのURLからふくまれるURLを取得
-        ///  let keys = [URLResourceKey.contentModificationDateKey]
-        var fileAndFolderURLs = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
- 
-        /// ファイル名でソート
-        fileAndFolderURLs.sort(by: {$0.lastPathComponent < $1.lastPathComponent})
-//        print(fileAndFolderURLs)
+        let fileAndFolderURLs = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
         return fileAndFolderURLs
     } catch {
         print(error)
@@ -202,10 +191,25 @@ func getFolder(url: URL) -> [URL] {
 }
 
 
-
-
-struct RecordView_Previews: PreviewProvider {
-    static var previews: some View {
-        RecordView()
+func removeItem(atPath path: URL) {
+    let fileManager = FileManager.default
+    do {
+        try fileManager.removeItem(at: path)
+    } catch {
+        fatalError("Failed to remove item at path \(path). Error: \(error.localizedDescription)")
     }
 }
+
+//func updateListOfPath(at path: URL = URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0])) -> [URL]{
+//    let listOfPath = getFolder(url: path)
+////        listOfPath.reverse()
+//    return listOfPath
+//}
+
+
+//struct RecordView_Previews: PreviewProvider {
+//    @State var listOfPath: [URL] = []
+//    static var previews: some View {
+//        RecordView(listOfPath: $listOfPath)
+//    }
+//}

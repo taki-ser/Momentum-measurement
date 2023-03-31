@@ -14,6 +14,8 @@ struct GraphView: View {
     @State private var accelerationData: [Double] = []
     @State private var gyroData: [Double] = []
     @State private var isMeasuring = false
+    @State private var selectedFolderIndex = 0
+    @Binding var listOfPath: [URL]
     var body: some View {
         VStack {
         Text("Graph View")
@@ -25,6 +27,14 @@ struct GraphView: View {
                     stopMotionUpdates()
                 }
             }
+            Picker("記録する動作を選択", selection: $selectedFolderIndex) {
+                ForEach(0..<listOfPath.count, id: \.self) { index in
+                    if listOfPath[index].hasDirectoryPath {
+                        Text(listOfPath[index].lastPathComponent)
+                    }
+                }
+            }
+            .pickerStyle(WheelPickerStyle())
             LineView(data: accelerationData, title: "Acceleration")
             LineView(data: gyroData, title: "Gyro")
         }
@@ -56,9 +66,9 @@ struct GraphView: View {
 }
 
 
-struct GraphView_Previews: PreviewProvider {
-    
-    static var previews: some View {
-        GraphView()
-    }
-}
+//struct GraphView_Previews: PreviewProvider {
+//    
+//    static var previews: some View {
+//        GraphView(listOfPath: updateListOfPath())
+//    }
+//}
