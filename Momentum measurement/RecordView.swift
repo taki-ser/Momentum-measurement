@@ -11,21 +11,11 @@ struct Record: Identifiable {
     let id = UUID()
     let date: Date
     let filename: String
-    var recordOfMotionData: [MotionData] = []
-    }
-
-struct MotionData {
-    var accelerationX: Double
-    var accelerationY: Double
-    var accelerationZ: Double
-    var gyroX: Double
-    var gyroY: Double
-    var gyroZ: Double
+//    var recordOfMotionData: [MotionData] = []
 }
 
-
 struct RecordView: View {
-    @State private var records: [Record] = []
+    
     @State private var activityFolderName: String = ""
     @Binding var listOfPath: [URL]
     @State private var showingAddFolderAlart = false
@@ -111,7 +101,7 @@ struct RecordView: View {
         let fileURL = directory.appendingPathComponent(filename)
         do {
             try "".write(to: fileURL, atomically: true, encoding: .utf8)
-            records.append(Record(date: date, filename: filename))
+//            records.append(Record(date: date, filename: filename))
         } catch {
             print(error.localizedDescription)
         }

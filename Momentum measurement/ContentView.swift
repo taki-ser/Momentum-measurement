@@ -16,7 +16,7 @@ struct ContentView: View {
     @State var listOfPathOriginal: [URL] = []
     var body: some View {
         TabView {
-            GraphView(listOfPath: $listOfPathOriginal)
+            GraphView(sensorDataManager: SensorDataManager(listOfPath1: listOfPathOriginal), listOfPath: $listOfPathOriginal)
                 .tabItem {
                     Image(systemName: "chart.bar")
                     Text("Graph")
