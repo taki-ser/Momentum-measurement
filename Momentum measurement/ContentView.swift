@@ -8,10 +8,7 @@
 
 import SwiftUI
 import CoreMotion
-//struct data {
-//     @State var listOfPath: URL
-//     @State var
-//}
+
 struct ContentView: View {
     @State var listOfPathOriginal: [URL] = []
     var body: some View {
