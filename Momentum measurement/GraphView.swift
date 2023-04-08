@@ -12,7 +12,7 @@ import SwiftUICharts
 struct GraphView: View {
     @State private var isMeasuring = false
     @ObservedObject var sensorDataManager: SensorDataManager
-    @Binding var listOfPath: [URL]
+//    @Binding var listOfPath: [URL]
     
     var body: some View {
         VStack {
@@ -56,7 +56,6 @@ class SensorDataManager: ObservableObject {
     init(listOfPath1: [URL]) {
         self.listOfPath = listOfPath1
     }
-    
     func startLogging() {
         if motionManager.isDeviceMotionAvailable {
             motionManager.deviceMotionUpdateInterval = 1.0 / 60.0
