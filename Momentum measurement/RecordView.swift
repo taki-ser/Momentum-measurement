@@ -9,10 +9,11 @@ import SwiftUI
 
 struct RecordView: View {
     @Environment(\.dismiss) var dismissKeyboard
-    @State private var isEditing = false
+//    @State private var isEditing = false
     @State private var newItem = ""
     @Binding var listOfPath: [URL]
     @State private var deleteCandidate: URL?
+    @FocusState private var isEditing: Bool
     var body: some View {
         NavigationView {
             List{
@@ -29,46 +30,60 @@ struct RecordView: View {
                         deleteCandidate = nil
                     }
                 }
+                
+//                .gesture(DragGesture().onChanged{_ in
+//                    isEditing = false
+//                    self.dismissKeyboard()
+//                })
+//                .onTapGesture {
+//                    if isEditing {
+//                           self.dismissKeyboard()
+//                           self.isEditing = false
+//                       }
+//                }
+                
                 TextField("New Item", text: $newItem, onCommit: {
                     isEditing = false
-                    createDirectory()
+                    if newItem != "" {
+                        createDirectory()
+                    }
+                    DispatchQueue.main.async {
+                            newItem = "" // テキストフィールドを空にする
+                        }
                 })
-                //                    .focused($isEditing)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .focused($isEditing)
+//                .textFieldStyle(RoundedBorderTextFieldStyle())
                 .keyboardType(.default)
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
                 .padding(5)
-                //                                    .background(Color(.secondarySystemBackground))
                 .cornerRadius(8)
-                //                                    .overlay(
-                //                                        RoundedRectangle(cornerRadius: 8)
-                //                                            .stroke(Color(.separator), lineWidth: 1)
-                //                                    )
                 .padding(.horizontal)
                 .onTapGesture {
                     isEditing = true
-                }
-                .onAppear {
-                    isEditing = true
+                    //isEditing = !Editing
                 }
                 .animation(.default, value: isEditing)
-            }
-            .onTapGesture {
-                self.dismissKeyboard() // フォーカスを解除
+               
             }
             .navigationBarItems(
                 leading: EditButton(),
                 trailing:
                     Button(action: {
-                        isEditing = false
+                        isEditing = true
                         createDirectory()
                     }) {
                         Image(systemName: "plus")
                     }
-                //                    .disabled(newItem.isEmpty)
+                    .disabled(newItem.isEmpty)
             )
             .navigationTitle("Activity")
+            .gesture(DragGesture().onChanged{_ in
+                if isEditing == true {
+                    isEditing = false
+                    self.dismissKeyboard()
+                }
+            })
         }
     }
     private func delete(at offsets: IndexSet) {
@@ -88,10 +103,10 @@ struct RecordView: View {
         do {
             try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true, attributes: nil)
             listOfPath.append(directoryURL)
-            self.newItem = ""
         } catch {
             print(error.localizedDescription)
         }
+        newItem = ""
     }
 }
 struct ItemCell: View {
@@ -125,20 +140,24 @@ struct SubFolder: View {
                 ItemCell(url:url)
             }
             .onDelete { (indexSet) in
-                                if let index = indexSet.first {
-                                    deleteCandidate = getFolder(url: url)[index]
-                                    showingDeleteAlertSub = true
-                                }
-                            }
+                if let index = indexSet.first {
+                    deleteCandidate = getFolder(url: url)[index]
+                }
+                if let candidate = deleteCandidate {
+                    removeItem(atPath: candidate)
+                    listOfPath = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
+                    deleteCandidate = nil
+                }
+            }
         }
         .navigationBarTitle(url.lastPathComponent, displayMode: .inline)
     }
     
-    func deleteFile(atPath path: URL) {
-        removeItem(atPath: path)
-        print("\(path)はデリートされた\n")
-//        self.showingDeleteAlert = false
-    }
+//    func deleteFile(atPath path: URL) {
+//        removeItem(atPath: path)
+//        print("\(path)はデリートされた\n")
+////        self.showingDeleteAlert = false
+//    }
 }
 
 
