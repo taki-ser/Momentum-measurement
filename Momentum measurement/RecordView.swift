@@ -8,8 +8,7 @@
 import SwiftUI
 
 struct RecordView: View {
-    @Environment(\.dismiss) var dismissKeyboard
-//    @State private var isEditing = false
+    
     @State private var newItem = ""
     @Binding var listOfPath: [URL]
     @State private var deleteCandidate: URL?
@@ -18,7 +17,7 @@ struct RecordView: View {
         NavigationView {
             List{
                 ForEach(listOfPath, id: \.self) { url in
-                    ItemCell(url:url)
+                    ItemCell(url: url)
                 }
                 .onDelete { (indexSet) in
                     if let index = indexSet.first {
@@ -30,61 +29,34 @@ struct RecordView: View {
                         deleteCandidate = nil
                     }
                 }
-                
-//                .gesture(DragGesture().onChanged{_ in
-//                    isEditing = false
-//                    self.dismissKeyboard()
-//                })
-//                .onTapGesture {
-//                    if isEditing {
-//                           self.dismissKeyboard()
-//                           self.isEditing = false
-//                       }
-//                }
-                
-                TextField("New Item", text: $newItem, onCommit: {
-                    isEditing = false
-                    if newItem != "" {
-                        createDirectory()
-                    }
-                    DispatchQueue.main.async {
+                HStack{
+                    Image(systemName: "folder")
+                    TextField("New Item", text: $newItem, onCommit: {
+                        isEditing = false
+                        if newItem != "" {
+                            createDirectory()
+                        }
+                        DispatchQueue.main.async {
                             newItem = "" // テキストフィールドを空にする
                         }
-                })
-                .focused($isEditing)
-//                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .keyboardType(.default)
-                .autocapitalization(.none)
-                .disableAutocorrection(true)
-                .padding(5)
-                .cornerRadius(8)
-                .padding(.horizontal)
-                .onTapGesture {
-                    isEditing = true
-                    //isEditing = !Editing
-                }
-                .animation(.default, value: isEditing)
-               
-            }
-            .navigationBarItems(
-                leading: EditButton(),
-                trailing:
-                    Button(action: {
-                        isEditing = true
-                        createDirectory()
-                    }) {
-                        Image(systemName: "plus")
+                    })
+                    .focused($isEditing)
+                    .keyboardType(.default)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .padding(.horizontal)
+                    .onTapGesture {
+                        //                    isEditing = true
+                        isEditing = !isEditing
                     }
-                    .disabled(newItem.isEmpty)
-            )
-            .navigationTitle("Activity")
-            .gesture(DragGesture().onChanged{_ in
-                if isEditing == true {
-                    isEditing = false
-                    self.dismissKeyboard()
+                    .animation(.default, value: isEditing)
+                    
                 }
-            })
+                .navigationTitle("Activity")
+            }
+            
         }
+        
     }
     private func delete(at offsets: IndexSet) {
         listOfPath.remove(atOffsets: offsets)
@@ -111,6 +83,9 @@ struct RecordView: View {
 }
 struct ItemCell: View {
     let url: URL
+    @Environment(\.dismiss) var dismissKeyboard
+    @FocusState private var isEditing: Bool
+       
     var body: some View {
         HStack {
             if url.hasDirectoryPath {
@@ -118,14 +93,22 @@ struct ItemCell: View {
                 NavigationLink(destination: SubFolder(url: url)) {
                     Image(systemName: "folder")
                     Text(url.lastPathComponent)
+                    
                 }
+//                .onAppear() {
+//                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+//                }
             } else {
                 /// ファイル
                 Image(systemName: "doc.text")
                 Text(url.lastPathComponent)
             }
         }
+//        .onAppear() {
+//            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+//        }
     }
+    
 }
 
 struct SubFolder: View {
@@ -151,13 +134,10 @@ struct SubFolder: View {
             }
         }
         .navigationBarTitle(url.lastPathComponent, displayMode: .inline)
+        .onAppear() {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
     }
-    
-//    func deleteFile(atPath path: URL) {
-//        removeItem(atPath: path)
-//        print("\(path)はデリートされた\n")
-////        self.showingDeleteAlert = false
-//    }
 }
 
 
