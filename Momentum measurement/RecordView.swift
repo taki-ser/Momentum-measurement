@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct RecordView: View {
-    
     @State private var newItem = ""
     @Binding var listOfPath: [URL]
     @State private var deleteCandidate: URL?
@@ -50,28 +49,20 @@ struct RecordView: View {
                         isEditing = !isEditing
                     }
                     .animation(.default, value: isEditing)
-                    
+
                 }
                 .navigationTitle("Activity")
             }
-            
+//            .selectionMode(.multiple)
         }
-        
+
     }
-    private func delete(at offsets: IndexSet) {
-        listOfPath.remove(atOffsets: offsets)
-    }
-    
-    private func move(from source: IndexSet, to destination: Int) {
-        listOfPath.move(fromOffsets: source, toOffset: destination)
-    }
-    
     func createDirectory() {
         guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             return
         }
         let directoryURL = documentsDirectory.appendingPathComponent(newItem, isDirectory: true)
-        
+
         do {
             try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true, attributes: nil)
             listOfPath.append(directoryURL)
@@ -85,7 +76,8 @@ struct ItemCell: View {
     let url: URL
     @Environment(\.dismiss) var dismissKeyboard
     @FocusState private var isEditing: Bool
-       
+    @State private var showContextMenu = false
+    @State private var rename = ""
     var body: some View {
         HStack {
             if url.hasDirectoryPath {
@@ -93,23 +85,130 @@ struct ItemCell: View {
                 NavigationLink(destination: SubFolder(url: url)) {
                     Image(systemName: "folder")
                     Text(url.lastPathComponent)
-                    
+                        .contextMenu(menuItems: {
+                            Button("Copy", action: {
+                                UIPasteboard.general.string = url.lastPathComponent
+                            })
+//                            Button("Rename", action:{
+//                                TextField("New Item", text: $rename, onCommit: {
+//                                    isEditing = false
+//                                    if rename != "" {
+//
+//                                    }
+//                                    DispatchQueue.main.async {
+//                                        rename = "" // テキストフィールドを空にする
+//                                    }
+//                                })
+//                            })
+                        })
+                        .onLongPressGesture {
+                            showContextMenu = true
+                        }
+
                 }
-//                .onAppear() {
-//                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-//                }
             } else {
                 /// ファイル
                 Image(systemName: "doc.text")
                 Text(url.lastPathComponent)
+                    .contextMenu(menuItems: {
+                        Button("Copy", action: {
+                            UIPasteboard.general.string = url.lastPathComponent
+                        })
+                    })
+                    .onLongPressGesture {
+                        showContextMenu = true
+                    }
             }
         }
-//        .onAppear() {
-//            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-//        }
     }
-    
+
 }
+//struct ItemCell: View {
+//    let url: URL
+//    @Environment(\.dismiss) var dismissKeyboard
+//    @FocusState private var isEditing: Bool
+//    @State private var showContextMenu = false
+//    @State private var rename = ""
+//    @State private var showRenameAlert = false
+//
+//    var body: some View {
+//        HStack {
+//            if url.hasDirectoryPath {
+//                /// フォルダ
+//                NavigationLink(destination: SubFolder(url: url)) {
+//                    Image(systemName: "folder")
+//                    Text(url.lastPathComponent)
+//                        .contextMenu(menuItems: {
+//                            Button("Copy", action: {
+//                                UIPasteboard.general.string = url.lastPathComponent
+//                            })
+//                            Button("Rename", action:{
+//                                isEditing = true
+//                            })
+//                        })
+//                        .onLongPressGesture {
+//                            showContextMenu = true
+//                        }
+//                        .alert(isPresented: $showRenameAlert) {
+//                            Alert(title: Text("Rename Folder"), message: Text("Please enter the new name of the folder"), primaryButton: .cancel(), secondaryButton: .default(Text("OK")) {
+//                                isEditing = false
+//                                if rename != "" {
+//                                    let newURL = url.deletingLastPathComponent().appendingPathComponent(rename, isDirectory: true)
+//                                    do {
+//                                        try FileManager.default.moveItem(at: url, to: newURL)
+//                                    } catch let error {
+//                                        print("Error renaming folder: \(error.localizedDescription)")
+//                                    }
+//                                }
+//                                DispatchQueue.main.async {
+//                                    rename = "" // テキストフィールドを空にする
+//                                }
+//                            })
+//                        }
+//                }
+//                .padding(.trailing, isEditing ? 80 : 0)
+//                .animation(.default)
+//                .overlay(
+//                    Group {
+//                        if isEditing {
+//                            TextField("", text: $rename, onCommit: {
+//                                showRenameAlert = true
+//                            })
+//                            .frame(width: 100, height: 30)
+//                            .foregroundColor(.primary)
+//                            .background(Color(.secondarySystemBackground))
+//                            .cornerRadius(5)
+//                            .padding(.leading, 8)
+//                            .padding(.trailing, 8)
+//                            .onAppear {
+//                                DispatchQueue.main.async {
+//                                    rename = url.lastPathComponent
+//                                }
+//                            }
+//                            .onDisappear {
+//                                DispatchQueue.main.async {
+//                                    rename = ""
+//                                }
+//                            }
+//                        }
+//                    }
+//                )
+//            } else {
+//                /// ファイル
+//                Image(systemName: "doc.text")
+//                Text(url.lastPathComponent)
+//                    .contextMenu(menuItems: {
+//                        Button("Copy", action: {
+//                            UIPasteboard.general.string = url.lastPathComponent
+//                        })
+//                    })
+//                    .onLongPressGesture {
+//                        showContextMenu = true
+//                    }
+//            }
+//        }
+//    }
+//}
 
 struct SubFolder: View {
     @State private var showingDeleteAlert = false
@@ -170,3 +269,47 @@ struct RecordView_Previews: PreviewProvider {
         RecordView(listOfPath: ContentView().$listOfPathOriginal)
     }
 }
+import SwiftUI
+
+//struct ContetView: View {
+//    @State private var text: String = ""
+//    @State private var showContextMenu = false
+//
+//    var body: some View {
+//        VStack {
+//            Text(text)
+//                .contextMenu(menuItems: {
+//                    Button("Copy", action: {
+//                        UIPasteboard.general.string = text
+//                    })
+//                    Button("Cut", action: {
+//                        UIPasteboard.general.string = text
+//                        text = ""
+//                    })
+//                    Button("Paste", action: {
+//                        if let copiedText = UIPasteboard.general.string {
+//                            text += copiedText
+//                        }
+//                    })
+//                })
+//                .onLongPressGesture {
+//                    showContextMenu = true
+//                }
+//                .alert(isPresented: $showContextMenu) {
+//                    Alert(
+//                        title: Text("Select Action"),
+//                        message: nil,
+//                        dismissButton: .cancel()
+//                    )
+//                }
+//            TextField("Enter text", text: $text)
+//                .padding()
+//        }
+//    }
+//}
+//struct ConteaatView: PreviewProvider {
+//    @State var listOfPath: [URL] = []
+//    static var previews: some View {
+//       ContetView()
+//    }
+//}

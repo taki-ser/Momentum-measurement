@@ -8,12 +8,12 @@
 import SwiftUI
 import CoreMotion
 import SwiftUICharts
+import Charts
 
 struct GraphView: View {
     @State private var isMeasuring = false
     @ObservedObject var sensorDataManager: SensorDataManager
 //    @Binding var listOfPath: [URL]
-    
     var body: some View {
         VStack {
             Text("Graph View")
@@ -39,8 +39,48 @@ struct GraphView: View {
                 .pickerStyle(WheelPickerStyle())
                 Spacer()
             }
-            LineView(data: sensorDataManager.accelerationData, title: "Acceleration")
-            LineView(data: sensorDataManager.gyroData, title: "Gyro")
+////            LineView(data: sensorDataManager.accelerationData, title: "Acceleration")
+////            LineView(data: sensorDataManager.gyroData, title: "Gyro")
+////            MultiLineChartView(data: [(sensorDataManager.accelerationData, GradientColors.green), (sensorDataManager.gyroData, GradientColors.purple)],  title: "Momentum", form: ChartForm.extraLarge, dropShadow: true, valueSpecifier:"%.2f")
+//            LineChartView(data: sensorDataManager.accelerationData)
+//                .frame(height: 200)
+//            VStack {
+//                HStack {
+//                    Text("Time (s)")
+//                        .font(.caption)
+//                        .opacity(0.5)
+//                    Spacer()
+//                }
+//                MultiLineChartView(
+//                    data: [
+//                        (sensorDataManager.accelerationData, GradientColors.green),
+////                        (sensorDataManager.gyroData, GradientColors.purple),
+////                        (sensorDataManager.magneticData, GradientColors.blue) // SensorDataManagerでmagneticDataも定義する必要があります
+//                    ],
+//                    title: "Sensor Data",
+//                    form: ChartForm.extraLarge,
+//                    dropShadow: true,
+//                    valueSpecifier: "%.2f"
+//                )
+//                .frame(height: 200)
+//                HStack {
+//                    Text("0")
+//                        .font(.caption)
+//                        .opacity(0.5)
+//                    Spacer()
+//                    Text("Max Time")
+//                        .font(.caption)
+//                        .opacity(0.5)
+//                }
+//            }
+            SensorDataChartView(
+                data: [
+                      (data: sensorDataManager.accelerationData, color: GradientColors.green),
+                      (data: sensorDataManager.gyroData, color: GradientColors.purple),
+//                      (data: sensorDataManager.magneticData, color: GradientColors.blue) // SensorDataManagerでmagneticDataも定義する必要があります
+                  ]
+            )
+            .frame(height: 200)
         }
     }
 }
@@ -103,5 +143,92 @@ struct GraphView_Previews: PreviewProvider {
 
     static var previews: some View {
         GraphView(sensorDataManager: SensorDataManager(listOfPath1: ContentView().listOfPathOriginal))
+    }
+}
+
+
+struct LineChartView: View {
+    
+    let data: [Double]
+    
+    var body: some View {
+        GeometryReader { geometry in
+            let maxData = data.max() ?? 1
+            let stepSize = geometry.size.height / CGFloat(maxData)
+            
+            Path { path in
+                path.move(to: CGPoint(x: 0, y: geometry.size.height))
+                for i in 0..<data.count {
+                    let x = geometry.size.width / CGFloat(data.count) * CGFloat(i)
+                    let y = geometry.size.height - CGFloat(data[i]) * stepSize
+                    path.addLine(to: CGPoint(x: x, y: y))
+                }
+            }
+            .stroke(lineWidth: 2)
+            .foregroundColor(.blue)
+        }
+    }
+}
+
+struct lineView: View {
+    
+    let data: [Double] = [0.0, 1.0, 0.0, 3.0, 4.0, 5.0, 5.5, 3.0, 2.0, 1.0, 0.0]
+    
+    var body: some View {
+        VStack {
+            Text("Line Chart Example")
+            LineChartView(data: data)
+                .frame(height: 200)
+        }
+    }
+}
+
+struct SensorDataChartView: View {
+    let data: [(data: [Double], color: GradientColor)]
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                MultiLineChartView(
+                    data: data.map { (data: $0.data, color: $0.color) },
+                    title: "Sensor Data",
+                    form: ChartForm.extraLarge,
+                    dropShadow: false,
+                    valueSpecifier: "%.2f"
+                )
+                
+                // 縦軸ラベル
+                VStack {
+                    Text("Value")
+                        .font(.caption)
+                        .opacity(0.5)
+                        .padding(.bottom, -8)
+                    Spacer()
+                    Text("0")
+                        .font(.caption)
+                        .opacity(0.5)
+                }
+                .padding(.leading, 8)
+                
+                // 横軸ラベル
+                HStack {
+                    Text("0")
+                        .font(.caption)
+                        .opacity(0.5)
+                    Spacer()
+                    Text("Time (s)")
+                        .font(.caption)
+                        .opacity(0.5)
+                }
+                .padding(.bottom, 8)
+            }
+            .frame(height: geometry.size.height)
+        }
+    }
+}
+
+struct LineView_Previews: PreviewProvider {
+    static var previews: some View {
+        lineView()
     }
 }
