@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		524EE70E29E91EAC00845102 /* testGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524EE70D29E91EAC00845102 /* testGraphView.swift */; };
 		525008C229D3EE4300C7FF82 /* Momentum_measurementApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525008C129D3EE4300C7FF82 /* Momentum_measurementApp.swift */; };
 		525008C429D3EE4300C7FF82 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525008C329D3EE4300C7FF82 /* ContentView.swift */; };
 		525008C629D3EE4500C7FF82 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 525008C529D3EE4500C7FF82 /* Assets.xcassets */; };
@@ -38,6 +39,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		524EE70D29E91EAC00845102 /* testGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = testGraphView.swift; sourceTree = "<group>"; };
 		525008BE29D3EE4300C7FF82 /* Momentum measurement.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Momentum measurement.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		525008C129D3EE4300C7FF82 /* Momentum_measurementApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Momentum_measurementApp.swift; sourceTree = "<group>"; };
 		525008C329D3EE4300C7FF82 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -104,6 +106,7 @@
 			children = (
 				525008C129D3EE4300C7FF82 /* Momentum_measurementApp.swift */,
 				525008C329D3EE4300C7FF82 /* ContentView.swift */,
+				524EE70D29E91EAC00845102 /* testGraphView.swift */,
 				525008F229D421E800C7FF82 /* RecordView.swift */,
 				52726DF329D5C9CD00D7FFDA /* TextFieldAlertView.swift */,
 				525008F029D41EF400C7FF82 /* GraphView.swift */,
@@ -277,6 +280,7 @@
 				525008C429D3EE4300C7FF82 /* ContentView.swift in Sources */,
 				525008F329D421E800C7FF82 /* RecordView.swift in Sources */,
 				525008C229D3EE4300C7FF82 /* Momentum_measurementApp.swift in Sources */,
+				524EE70E29E91EAC00845102 /* testGraphView.swift in Sources */,
 				525008F129D41EF400C7FF82 /* GraphView.swift in Sources */,
 				52726DF429D5C9CD00D7FFDA /* TextFieldAlertView.swift in Sources */,
 			);

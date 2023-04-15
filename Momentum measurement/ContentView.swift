@@ -10,10 +10,11 @@ import SwiftUI
 import CoreMotion
 
 struct ContentView: View {
+    @StateObject var timeCounter = TimeCounter()
     @State var listOfPathOriginal: [URL] = []
     var body: some View {
         TabView {
-            GraphView(sensorDataManager: SensorDataManager(listOfPath1: listOfPathOriginal))
+            GraphView(sensorDataManager: SensorDataManager(listOfPath1: listOfPathOriginal, timeCounter: timeCounter))
                 .tabItem {
                     Image(systemName: "chart.bar")
                     Text("Graph")

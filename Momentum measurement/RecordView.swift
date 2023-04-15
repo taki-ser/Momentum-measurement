@@ -10,28 +10,30 @@ import SwiftUI
 struct RecordView: View {
     @State private var newItem = ""
     @Binding var listOfPath: [URL]
-    @State private var deleteCandidate: URL?
-    @FocusState private var isEditing: Bool
+    @State private var isEditingNewName: Bool = false
+    @State private var isEditingMode = false
+    @State private var selectedItems: Set<URL> = Set<URL>()
+    @State private var showingDeleteAlert = false
     var body: some View {
         NavigationView {
-            List{
+            List(selection: $selectedItems){
                 ForEach(listOfPath, id: \.self) { url in
                     ItemCell(url: url)
                 }
-                .onDelete { (indexSet) in
-                    if let index = indexSet.first {
-                        deleteCandidate = listOfPath[index]
-                    }
-                    if let candidate = deleteCandidate {
-                        removeItem(atPath: candidate)
-                        listOfPath = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
-                        deleteCandidate = nil
-                    }
-                }
+//                    .onDelete { (indexSet) in
+//                        if let index = indexSet.first {
+//                            let candidate = listOfPath[index]
+//                            removeItem(atPath: candidate)
+//                            listOfPath = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
+//                        }
+//                    }
+//                }
+                
+        
                 HStack{
                     Image(systemName: "folder")
                     TextField("New Item", text: $newItem, onCommit: {
-                        isEditing = false
+                        isEditingNewName = false
                         if newItem != "" {
                             createDirectory()
                         }
@@ -39,38 +41,102 @@ struct RecordView: View {
                             newItem = "" // テキストフィールドを空にする
                         }
                     })
-                    .focused($isEditing)
+//                    .focused($isEditingNewName)
                     .keyboardType(.default)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
                     .padding(.horizontal)
                     .onTapGesture {
                         //                    isEditing = true
-                        isEditing = !isEditing
+                        isEditingNewName = !isEditingNewName
                     }
-                    .animation(.default, value: isEditing)
+                    .animation(.default, value: isEditingNewName)
 
                 }
                 .navigationTitle("Activity")
             }
+            .environment(\.editMode, isEditingMode ? .constant(.active) : .constant(.inactive))
 //            .selectionMode(.multiple)
+            .toolbar {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        isEditingMode = !isEditingMode
+//                        if !isEditingMode {
+//                            selectedItems.removeAll()
+//                        }
+                        selectedItems.removeAll()
+                    }, label: {
+                        if isEditingMode {
+                            Text("Done")
+                        } else {
+                            Text("Edit")
+                        }
+                    })
+                
+                }
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .bottomBar) {
+                    if isEditingMode {
+                        Button(action: {
+//                                        deleteItems()
+//                            deleteSelectedItems()
+                            showingDeleteAlert = !showingDeleteAlert
+                        }, label: {
+                            Text("Delete (\(selectedItems.count))")
+                        })
+                        .alert(isPresented: $showingDeleteAlert) {
+                            Alert(title: Text("警告"),
+                                  message: Text("\"\("Are you sure you want to delete \(selectedItems.count) items?")\"は削除されます。"),
+                                  primaryButton: .cancel(Text("キャンセル")),    // キャンセル用
+                                  secondaryButton: .destructive(Text("削除"), action: {deleteSelectedItems()})
+                            )   // 破壊的変更用
+                        }
+                        .disabled(selectedItems.isEmpty)
+                        Spacer()
+                    }
+                    if isEditingMode {
+                        Spacer()
+                        Button(action: {
+//                                        shareSelectedItems()
+                        }, label: {
+                            Text("Share")
+                        })
+                        .disabled(selectedItems.isEmpty)
+                    }
+                }
+            }
         }
-
     }
     func createDirectory() {
-        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+        let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+        guard let directoryURL = documentsDirectory?.appendingPathComponent(newItem, isDirectory: true) else {
             return
         }
-        let directoryURL = documentsDirectory.appendingPathComponent(newItem, isDirectory: true)
-
+        
         do {
             try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true, attributes: nil)
             listOfPath.append(directoryURL)
         } catch {
-            print(error.localizedDescription)
+            print("Failed to create directory: \(error.localizedDescription)")
         }
+        
         newItem = ""
     }
+    func deleteSelectedItems() {
+            for item in selectedItems {
+//                    do {
+//                        try FileManager.default.removeItem(at: item)
+//                        listOfPath.removeAll(where: { $0 == item })
+//                    } catch {
+//                        print("Error deleting item: \(error.localizedDescription)")
+//                    }
+                removeItem(atPath: item)
+                listOfPath = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
+            }
+            selectedItems.removeAll()
+    }
+
 }
 struct ItemCell: View {
     let url: URL
@@ -82,6 +148,7 @@ struct ItemCell: View {
         HStack {
             if url.hasDirectoryPath {
                 /// フォルダ
+//                if
                 NavigationLink(destination: SubFolder(url: url)) {
                     Image(systemName: "folder")
                     Text(url.lastPathComponent)
@@ -123,98 +190,12 @@ struct ItemCell: View {
     }
 
 }
-//struct ItemCell: View {
-//    let url: URL
-//    @Environment(\.dismiss) var dismissKeyboard
-//    @FocusState private var isEditing: Bool
-//    @State private var showContextMenu = false
-//    @State private var rename = ""
-//    @State private var showRenameAlert = false
-//
-//    var body: some View {
-//        HStack {
-//            if url.hasDirectoryPath {
-//                /// フォルダ
-//                NavigationLink(destination: SubFolder(url: url)) {
-//                    Image(systemName: "folder")
-//                    Text(url.lastPathComponent)
-//                        .contextMenu(menuItems: {
-//                            Button("Copy", action: {
-//                                UIPasteboard.general.string = url.lastPathComponent
-//                            })
-//                            Button("Rename", action:{
-//                                isEditing = true
-//                            })
-//                        })
-//                        .onLongPressGesture {
-//                            showContextMenu = true
-//                        }
-//                        .alert(isPresented: $showRenameAlert) {
-//                            Alert(title: Text("Rename Folder"), message: Text("Please enter the new name of the folder"), primaryButton: .cancel(), secondaryButton: .default(Text("OK")) {
-//                                isEditing = false
-//                                if rename != "" {
-//                                    let newURL = url.deletingLastPathComponent().appendingPathComponent(rename, isDirectory: true)
-//                                    do {
-//                                        try FileManager.default.moveItem(at: url, to: newURL)
-//                                    } catch let error {
-//                                        print("Error renaming folder: \(error.localizedDescription)")
-//                                    }
-//                                }
-//                                DispatchQueue.main.async {
-//                                    rename = "" // テキストフィールドを空にする
-//                                }
-//                            })
-//                        }
-//                }
-//                .padding(.trailing, isEditing ? 80 : 0)
-//                .animation(.default)
-//                .overlay(
-//                    Group {
-//                        if isEditing {
-//                            TextField("", text: $rename, onCommit: {
-//                                showRenameAlert = true
-//                            })
-//                            .frame(width: 100, height: 30)
-//                            .foregroundColor(.primary)
-//                            .background(Color(.secondarySystemBackground))
-//                            .cornerRadius(5)
-//                            .padding(.leading, 8)
-//                            .padding(.trailing, 8)
-//                            .onAppear {
-//                                DispatchQueue.main.async {
-//                                    rename = url.lastPathComponent
-//                                }
-//                            }
-//                            .onDisappear {
-//                                DispatchQueue.main.async {
-//                                    rename = ""
-//                                }
-//                            }
-//                        }
-//                    }
-//                )
-//            } else {
-//                /// ファイル
-//                Image(systemName: "doc.text")
-//                Text(url.lastPathComponent)
-//                    .contextMenu(menuItems: {
-//                        Button("Copy", action: {
-//                            UIPasteboard.general.string = url.lastPathComponent
-//                        })
-//                    })
-//                    .onLongPressGesture {
-//                        showContextMenu = true
-//                    }
-//            }
-//        }
-//    }
-//}
 
 struct SubFolder: View {
     @State private var showingDeleteAlert = false
     @State var listOfPath: [URL] = []
     @State private var showingDeleteAlertSub = false
-    @State private var deleteCandidate: URL?
+//    @State private var deleteCandidate: URL?
     let url: URL
     var body: some View {
         List {
@@ -223,12 +204,9 @@ struct SubFolder: View {
             }
             .onDelete { (indexSet) in
                 if let index = indexSet.first {
-                    deleteCandidate = getFolder(url: url)[index]
-                }
-                if let candidate = deleteCandidate {
+                    let candidate = listOfPath[index]
                     removeItem(atPath: candidate)
                     listOfPath = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
-                    deleteCandidate = nil
                 }
             }
         }
@@ -256,6 +234,7 @@ func removeItem(atPath path: URL) {
     let fileManager = FileManager.default
     do {
         try fileManager.removeItem(at: path)
+        print("\"\(path.lastPathComponent)\"を削除しました")
     } catch {
         fatalError("Failed to remove item at path \(path). Error: \(error.localizedDescription)")
     }
@@ -269,47 +248,3 @@ struct RecordView_Previews: PreviewProvider {
         RecordView(listOfPath: ContentView().$listOfPathOriginal)
     }
 }
-import SwiftUI
-
-//struct ContetView: View {
-//    @State private var text: String = ""
-//    @State private var showContextMenu = false
-//
-//    var body: some View {
-//        VStack {
-//            Text(text)
-//                .contextMenu(menuItems: {
-//                    Button("Copy", action: {
-//                        UIPasteboard.general.string = text
-//                    })
-//                    Button("Cut", action: {
-//                        UIPasteboard.general.string = text
-//                        text = ""
-//                    })
-//                    Button("Paste", action: {
-//                        if let copiedText = UIPasteboard.general.string {
-//                            text += copiedText
-//                        }
-//                    })
-//                })
-//                .onLongPressGesture {
-//                    showContextMenu = true
-//                }
-//                .alert(isPresented: $showContextMenu) {
-//                    Alert(
-//                        title: Text("Select Action"),
-//                        message: nil,
-//                        dismissButton: .cancel()
-//                    )
-//                }
-//            TextField("Enter text", text: $text)
-//                .padding()
-//        }
-//    }
-//}
-//struct ConteaatView: PreviewProvider {
-//    @State var listOfPath: [URL] = []
-//    static var previews: some View {
-//       ContetView()
-//    }
-//}
