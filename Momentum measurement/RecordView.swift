@@ -56,14 +56,31 @@ struct RecordView: View {
                 .navigationTitle("Activity")
             }
             .environment(\.editMode, isEditingMode ? .constant(.active) : .constant(.inactive))
-//            .selectionMode(.multiple)
+            .animation(.default, value: isEditingMode)
             .toolbar {
+                ToolbarItemGroup(placement: .navigationBarLeading) {
+                    if isEditingMode {
+                        Button(action: {
+                            if selectedItems.isEmpty {
+                                selectedItems = Set(listOfPath)
+                            }
+                            else {
+                                selectedItems = Set<URL>()
+                            }
+                        }, label: {
+                            if selectedItems.isEmpty {
+                                Text("All Select")
+                            }
+                            else {
+                                Text("All Deselect")
+                            }
+                        })
+                        .disabled(listOfPath.isEmpty)
+                    }
+                }
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     Button(action: {
                         isEditingMode = !isEditingMode
-//                        if !isEditingMode {
-//                            selectedItems.removeAll()
-//                        }
                         selectedItems.removeAll()
                     }, label: {
                         if isEditingMode {
@@ -72,15 +89,10 @@ struct RecordView: View {
                             Text("Edit")
                         }
                     })
-                
                 }
-            }
-            .toolbar {
                 ToolbarItemGroup(placement: .bottomBar) {
                     if isEditingMode {
                         Button(action: {
-//                                        deleteItems()
-//                            deleteSelectedItems()
                             showingDeleteAlert = !showingDeleteAlert
                         }, label: {
                             Text("Delete (\(selectedItems.count))")
@@ -94,11 +106,8 @@ struct RecordView: View {
                         }
                         .disabled(selectedItems.isEmpty)
                         Spacer()
-                    }
-                    if isEditingMode {
-                        Spacer()
                         Button(action: {
-//                                        shareSelectedItems()
+            //                                        shareSelectedItems()
                         }, label: {
                             Text("Share")
                         })
@@ -125,12 +134,6 @@ struct RecordView: View {
     }
     func deleteSelectedItems() {
             for item in selectedItems {
-//                    do {
-//                        try FileManager.default.removeItem(at: item)
-//                        listOfPath.removeAll(where: { $0 == item })
-//                    } catch {
-//                        print("Error deleting item: \(error.localizedDescription)")
-//                    }
                 removeItem(atPath: item)
                 listOfPath = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
             }
@@ -138,6 +141,7 @@ struct RecordView: View {
     }
 
 }
+
 struct ItemCell: View {
     let url: URL
     @Environment(\.dismiss) var dismissKeyboard
