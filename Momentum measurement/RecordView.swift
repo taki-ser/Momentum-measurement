@@ -4,7 +4,7 @@
 //
 //  Created by 滝瀬隆斗 on 2023/03/29.
 //
-
+import UIKit
 import SwiftUI
 
 struct RecordView: View {
@@ -14,22 +14,13 @@ struct RecordView: View {
     @State private var isEditingMode = false
     @State private var selectedItems: Set<URL> = Set<URL>()
     @State private var showingDeleteAlert = false
+    @State private var isSharing = false
     var body: some View {
         NavigationView {
             List(selection: $selectedItems){
                 ForEach(listOfPath, id: \.self) { url in
                     ItemCell(url: url)
                 }
-//                    .onDelete { (indexSet) in
-//                        if let index = indexSet.first {
-//                            let candidate = listOfPath[index]
-//                            removeItem(atPath: candidate)
-//                            listOfPath = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
-//                        }
-//                    }
-//                }
-                
-        
                 HStack{
                     Image(systemName: "folder")
                     TextField("New Item", text: $newItem, onCommit: {
@@ -41,12 +32,12 @@ struct RecordView: View {
                             newItem = "" // テキストフィールドを空にする
                         }
                     })
-//                    .focused($isEditingNewName)
-                    .keyboardType(.default)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                    .padding(.horizontal)
-                    .onTapGesture {
+//                       .focused($isEditingNewName)
+                        .keyboardType(.default)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                        .padding(.horizontal)
+                        .onTapGesture {
                         //                    isEditing = true
                         isEditingNewName = !isEditingNewName
                     }
@@ -55,68 +46,142 @@ struct RecordView: View {
                 }
                 .navigationTitle("Activity")
             }
-            .environment(\.editMode, isEditingMode ? .constant(.active) : .constant(.inactive))
-            .animation(.default, value: isEditingMode)
-            .toolbar {
-                ToolbarItemGroup(placement: .navigationBarLeading) {
-                    if isEditingMode {
-                        Button(action: {
-                            if selectedItems.isEmpty {
-                                selectedItems = Set(listOfPath)
-                            }
-                            else {
-                                selectedItems = Set<URL>()
-                            }
-                        }, label: {
-                            if selectedItems.isEmpty {
-                                Text("All Select")
-                            }
-                            else {
-                                Text("All Deselect")
-                            }
-                        })
-                        .disabled(listOfPath.isEmpty)
-                    }
-                }
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        isEditingMode = !isEditingMode
-                        selectedItems.removeAll()
-                    }, label: {
+                .environment(\.editMode, isEditingMode ? .constant(.active) : .constant(.inactive))
+                .animation(.default, value: isEditingMode)
+                .toolbar {
+                    ToolbarItemGroup(placement: .navigationBarLeading) {
                         if isEditingMode {
-                            Text("Done")
-                        } else {
-                            Text("Edit")
+                            Button(action: {
+                                if selectedItems.isEmpty {
+                                    selectedItems = Set(listOfPath)
+                                }
+                                else {
+                                    selectedItems = Set<URL>()
+                                }
+                            }, label: {
+                                if selectedItems.isEmpty {
+                                    Text("All Select")
+                                }
+                                else {
+                                    Text("All Deselect")
+                                }
+                            })
+                            .disabled(listOfPath.isEmpty)
                         }
-                    })
-                }
-                ToolbarItemGroup(placement: .bottomBar) {
-                    if isEditingMode {
+                    }
+                    ToolbarItemGroup(placement: .navigationBarTrailing) {
                         Button(action: {
-                            showingDeleteAlert = !showingDeleteAlert
+                            isEditingMode = !isEditingMode
+                            selectedItems.removeAll()
                         }, label: {
-                            Text("Delete (\(selectedItems.count))")
+                            if isEditingMode {
+                                Text("Done")
+                            } else {
+                                Text("Edit")
+                            }
                         })
-                        .alert(isPresented: $showingDeleteAlert) {
-                            Alert(title: Text("警告"),
-                                  message: Text("\"\("Are you sure you want to delete \(selectedItems.count) items?")\"は削除されます。"),
-                                  primaryButton: .cancel(Text("キャンセル")),    // キャンセル用
-                                  secondaryButton: .destructive(Text("削除"), action: {deleteSelectedItems()})
-                            )   // 破壊的変更用
+                    }
+                    ToolbarItemGroup(placement: .bottomBar) {
+                        if isEditingMode {
+                            Button(action: {
+                                showingDeleteAlert = !showingDeleteAlert
+                            }, label: {
+                                Text("Delete (\(selectedItems.count))")
+                            })
+                            .alert(isPresented: $showingDeleteAlert) {
+                                Alert(title: Text("警告"),
+                                      message: Text("\"\("Are you sure you want to delete \(selectedItems.count) items?")\"は削除されます。"),
+                                      primaryButton: .cancel(Text("キャンセル")),    // キャンセル用
+                                      secondaryButton: .destructive(Text("削除"), action: {deleteSelectedItems()})
+                                )   // 破壊的変更用
+                            }
+                            .disabled(selectedItems.isEmpty)
+                            Spacer()
+                            Button(action: {
+                                shareSelectedItems()
+                            }, label: {
+                                Text("Share")
+                            })
+                            .disabled(selectedItems.isEmpty)
+                            
                         }
-                        .disabled(selectedItems.isEmpty)
-                        Spacer()
-                        Button(action: {
-            //                                        shareSelectedItems()
-                        }, label: {
-                            Text("Share")
-                        })
-                        .disabled(selectedItems.isEmpty)
                     }
                 }
             }
-        }
+                .sheet(isPresented: $isSharing) {
+                    ShareSheet(items: selectedItems.map { $0 as Any })
+                }
     }
+
+//    func shareSelectedItems() {
+//        var itemsToShare = [Any]()
+//
+//        for item in selectedItems {
+//            let activityItem = item
+//            itemsToShare.append(activityItem)
+//        }
+//
+//        let activityViewController = UIActivityViewController(activityItems: itemsToShare, applicationActivities: nil)
+//
+//        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene, let window = windowScene.windows.first {
+//            activityViewController.popoverPresentationController?.sourceView = window
+//
+//            activityViewController.excludedActivityTypes = [.postToFacebook, .postToTwitter, .addToReadingList, .postToVimeo]
+//
+//            if UIDevice.current.userInterfaceIdiom == .pad {
+//                activityViewController.popoverPresentationController?.sourceRect = CGRect(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 4, width: 0, height: 0)
+//            }
+//
+//            window.rootViewController?.present(activityViewController, animated: true, completion: nil)
+//        }
+//    }
+//    func shareSelectedItems() {
+//        var itemsToShare = [Any]()
+//
+//        for item in selectedItems {
+//            let activityItem = item
+//            itemsToShare.append(activityItem)
+//        }
+//
+//        isSharing = true
+//    }
+    func shareSelectedItems() {
+           var itemsToShare = [Any]()
+
+           for item in selectedItems {
+               if let files = getAllFiles(from: item) {
+                   itemsToShare.append(contentsOf: files)
+               } else {
+                   itemsToShare.append(item)
+               }
+           }
+
+           isSharing = true
+       }
+
+       func getAllFiles(from directory: URL) -> [URL]? {
+           do {
+               let fileURLs = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
+               var allFiles = [URL]()
+               
+               for fileURL in fileURLs {
+                   if fileURL.hasDirectoryPath {
+                       if let files = getAllFiles(from: fileURL) {
+                           allFiles.append(contentsOf: files)
+                       }
+                   } else {
+                       allFiles.append(fileURL)
+                   }
+               }
+               
+               return allFiles
+           } catch {
+               print("Error getting files from directory: \(error.localizedDescription)")
+               return nil
+           }
+       }
+
+
     func createDirectory() {
         let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
         guard let directoryURL = documentsDirectory?.appendingPathComponent(newItem, isDirectory: true) else {
@@ -135,11 +200,49 @@ struct RecordView: View {
     func deleteSelectedItems() {
             for item in selectedItems {
                 removeItem(atPath: item)
-                listOfPath = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
+                listOfPath = updateListOfPath()
             }
             selectedItems.removeAll()
     }
 
+}
+
+//struct ShareSheet: UIViewControllerRepresentable {
+//    var items: [Any]
+//
+//    func makeUIViewController(context: Context) -> UIActivityViewController {
+//        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+//        controller.excludedActivityTypes = [.postToFacebook, .postToTwitter, .addToReadingList, .postToVimeo]
+//        return controller
+//    }
+//
+//    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+//    }
+//}
+
+//struct ShareSheet: UIViewControllerRepresentable {
+//    var items: [Any]
+//
+//    func makeUIViewController(context: Context) -> UIActivityViewController {
+//        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+//        controller.excludedActivityTypes = [.postToFacebook, .postToTwitter, .addToReadingList, .postToVimeo]
+//        return controller
+//    }
+//
+//    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+//    }
+//}
+struct ShareSheet: UIViewControllerRepresentable {
+    var items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        controller.excludedActivityTypes = [.postToFacebook, .postToTwitter, .addToReadingList, .postToVimeo]
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+    }
 }
 
 struct ItemCell: View {
@@ -199,18 +302,17 @@ struct SubFolder: View {
     @State private var showingDeleteAlert = false
     @State var listOfPath: [URL] = []
     @State private var showingDeleteAlertSub = false
-//    @State private var deleteCandidate: URL?
     let url: URL
     var body: some View {
         List {
             ForEach(getFolder(url: url), id: \.self) { url in
-                ItemCell(url:url)
+                ItemCell(url: url)
             }
             .onDelete { (indexSet) in
+                let folderItems = getFolder(url: url)
                 if let index = indexSet.first {
-                    let candidate = listOfPath[index]
+                    let candidate = folderItems[index]
                     removeItem(atPath: candidate)
-                    listOfPath = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
                 }
             }
         }
@@ -220,6 +322,7 @@ struct SubFolder: View {
         }
     }
 }
+
 
 
 func getFolder(url: URL) -> [URL] {
@@ -244,6 +347,9 @@ func removeItem(atPath path: URL) {
     }
 }
 
+func updateListOfPath() -> [URL] {
+    return getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
+}
 
 
 struct RecordView_Previews: PreviewProvider {

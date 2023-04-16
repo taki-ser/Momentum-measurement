@@ -10,24 +10,30 @@ import SwiftUI
 import CoreMotion
 
 struct ContentView: View {
-    @StateObject var timeCounter = TimeCounter()
+    @State var timeCounter = TimeCounter()
     @State var listOfPathOriginal: [URL] = []
     var body: some View {
         TabView {
-            GraphView(sensorDataManager: SensorDataManager(listOfPath1: listOfPathOriginal, timeCounter: timeCounter))
+            GraphView(timeCounter: timeCounter, listOfPath: $listOfPathOriginal)
                 .tabItem {
                     Image(systemName: "chart.bar")
                     Text("Graph")
                 }
+                .onAppear(perform: {
+                    listOfPathOriginal = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
+                })
             RecordView(listOfPath: $listOfPathOriginal)
                 .tabItem {
                     Image(systemName: "list.bullet")
                     Text("Records")
                 }
+                .onAppear(perform: {
+                    listOfPathOriginal = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
+                })
         }
-        .onAppear(perform: {
-            listOfPathOriginal = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
-               })
+            .onAppear(perform: {
+                listOfPathOriginal = getFolder(url: URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]))
+            })
     }
 }
 
