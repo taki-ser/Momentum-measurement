@@ -54,6 +54,17 @@ struct GraphView: View {
                     .pickerStyle(WheelPickerStyle())
                 Spacer()
             }
+            Chart(sensorDataManager.sampledData) { data in
+                        LineMark(
+                            x: .value("time", data.t),
+                            y: .value("value", data.y)
+                        )
+                        .foregroundStyle(by: .value("Form", data.from))
+                        .lineStyle(StrokeStyle(lineWidth: 1))
+                        .interpolationMethod(.catmullRom)
+                    }
+                    .frame(height: 300)
+                    .padding()
             Spacer()
         }
         .onAppear(){
@@ -65,7 +76,7 @@ struct GraphView: View {
 class SensorDataManager: ObservableObject {
     @Published var sampledData: [SampledData] = []
     private let motionManager = CMMotionManager()
-    private var timer: Timer?
+//    private var timer: Timer?
     private var csvText = "timestamp,orientation_x,orientation_y,orientation_z,orientation_w,rotation_rate_x,rotation_rate_y,rotation_rate_z,gravity_x,gravity_y,gravity_z,acceleration_x,acceleration_y,acceleration_z,magnetic_field_x,magnetic_field_y,magnetic_field_z\n"
     @Published var timeCounter: TimeCounter
 
@@ -76,9 +87,10 @@ class SensorDataManager: ObservableObject {
         if motionManager.isDeviceMotionAvailable {
             motionManager.deviceMotionUpdateInterval = 1.0 / 60.0
             motionManager.startDeviceMotionUpdates(using: .xArbitraryCorrectedZVertical)
-            timer = Timer(fire: Date(), interval: (1.0 / 60.0), repeats: true) { [weak self] timer in
+            timeCounter.timer = Timer(fire: Date(), interval: (1.0 / 60.0), repeats: true) { [weak self] timer in
                 if let data = self?.motionManager.deviceMotion {
                     let timestamp = String(format: "%.2f", data.timestamp)
+                    let elapsedTime = self?.timeCounter.elapsedTime ?? 0
                     let orientation = data.attitude.quaternion
                     let rotationRate = data.rotationRate
                     let gravity = data.gravity
@@ -86,17 +98,18 @@ class SensorDataManager: ObservableObject {
                     let magneticField = data.magneticField.field
                     let row = "\(timestamp),\(orientation.x),\(orientation.y),\(orientation.z),\(orientation.w),\(rotationRate.x),\(rotationRate.y),\(rotationRate.z),\(gravity.x),\(gravity.y),\(gravity.z),\(acceleration.x),\(acceleration.y),\(acceleration.z),\(magneticField.x),\(magneticField.y),\(magneticField.z)\n"
                     self?.csvText.append(row)
-                    self?.sampledData.append(.init(name: timestamp, x: data.timestamp, y: acceleration.x, from: "acceleration.x"))
-                    self?.sampledData.append(.init(name: timestamp,  x: data.timestamp, y: acceleration.x, from: "orientation.x"))
+                    self?.sampledData.append(.init(name: timestamp,t: elapsedTime, y: acceleration.x, from: "acceleration.x"))
+                    self?.sampledData.append(.init(name: timestamp,t: elapsedTime, y: acceleration.x, from: "orientation.x"))
                 }
             }
-            RunLoop.current.add(timer!, forMode: .default)
+            
+            RunLoop.current.add(timeCounter.timer!, forMode: .default)
         }
     }
 
     func stopLogging(selectedURL: URL) {
         motionManager.stopDeviceMotionUpdates()
-        timer?.invalidate()
+        timeCounter.timer?.invalidate()
         writeDataToCSV(atURL: selectedURL)
     }
 
@@ -125,7 +138,7 @@ struct GraphView_Previews: PreviewProvider {
 class TimeCounter: ObservableObject {
     @Published var elapsedTimeString: String = "00:00:00.00"
     var startTime: Date?
-    private var timer: Timer?
+    var timer: Timer?
     @Published var elapsedTime: Double = 0
     func startTimer() {
        startTime = Date()
@@ -169,7 +182,8 @@ struct SampledData: Identifiable {
     var id: String { name }
     let name: String
 //    let accelerationData: Double
-    let x: Double
+    let t: Double
+//    let x: Double
     let y: Double
     let from: String
 }
