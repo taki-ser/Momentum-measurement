@@ -62,7 +62,6 @@ struct GraphView: View {
                             isMeasuring.toggle()
                             if isMeasuring {
                                 sensorDataManager.startLogging()
-                                sensorDataManager.timeCounter.startTimer(){_ in}
                             } else {
                                 sensorDataManager.stopLogging(selectedURL: listOfPath[selectedFolderIndex])
                                 sensorDataManager.timeCounter.resetTimer()
@@ -101,6 +100,7 @@ class SensorDataManager: ObservableObject {
     }
     func startLogging() {
         print("カウントスタート時\(self.sampledData.count)")
+        var count = 0
         if motionManager.isDeviceMotionAvailable {
             motionManager.deviceMotionUpdateInterval = 1.0 / Double(timeCounter.samplingRate)
             motionManager.startDeviceMotionUpdates(using: .xArbitraryCorrectedZVertical)
@@ -116,15 +116,18 @@ class SensorDataManager: ObservableObject {
                     let magneticField = data.magneticField.field
                     let row = "\(timestamp),\(elapsedTime),\(orientation.x),\(orientation.y),\(orientation.z),\(orientation.w),\(rotationRate.x),\(rotationRate.y),\(rotationRate.z),\(gravity.x),\(gravity.y),\(gravity.z),\(acceleration.x),\(acceleration.y),\(acceleration.z),\(magneticField.x),\(magneticField.y),\(magneticField.z)\n"
                     self?.csvText.append(row)
-                    self?.sampledData.append(.init(name: timestamp,time: elapsedTime, value: acceleration.x, from: "acceleration.x"))
-                    self?.sampledData.append(.init(name: timestamp,time: elapsedTime, value: acceleration.y, from: "orientation.y"))
-                    self?.sampledData.append(.init(name: timestamp,time: elapsedTime, value: acceleration.z, from: "acceleration.z"))
-                    // 最新の10秒分のデータのみを保持
-                    print("カウント\(self?.sampledData.count ?? 0), マックス \(self?.maxSamples ?? 0)")
+//                    self?.sampledData.append(.init(name: timestamp,time: elapsedTime, value: acceleration.x, from: "acceleration.x"))
+//                    self?.sampledData.append(.init(name: timestamp,time: elapsedTime, value: acceleration.y, from: "orientation.y"))
+//                    self?.sampledData.append(.init(name: timestamp,time: elapsedTime, value: acceleration.z, from: "acceleration.z"))
+                    self?.sampledData.append(contentsOf: [.init(name: timestamp,time: elapsedTime, value: acceleration.x, from: "acceleration.x"), .init(name: timestamp,time: elapsedTime, value: acceleration.y, from: "orientation.y"), .init(name: timestamp,time: elapsedTime, value: acceleration.z, from: "acceleration.z")])
+                    // 最新の5秒分のデータのみを保持
+                    print("カウント\(self?.sampledData.count ?? 0), 番号 \(count)")
                     if self?.sampledData.count ?? 0 >= self?.maxSamples ?? 0 {
                         self?.sampledData.removeFirst(3)
                        
                     }
+                    count = count+1
+                    
                 }
             }
             
@@ -135,12 +138,9 @@ class SensorDataManager: ObservableObject {
     func stopLogging(selectedURL: URL) {
         print("カウントストップ時\(self.sampledData.count)")
         motionManager.stopDeviceMotionUpdates()
-        timeCounter.timer?.invalidate()
         writeDataToCSV(atURL: selectedURL)
         self.sampledData.removeAll()//記録が終わったら表示を止める
         print("カウントリセット時\(self.sampledData.count)")
-        timeCounter.elapsedTime = 0
-        
     }
 
     func writeDataToCSV(atURL: URL) {
@@ -198,6 +198,7 @@ class TimeCounter: ObservableObject {
         timer = nil
         startTime = nil
         elapsedTimeString = "00:00:00.00"
+        elapsedTime = 0
     }
 
     func startTimer(action: @escaping (Timer) -> Void) {
@@ -209,12 +210,7 @@ class TimeCounter: ObservableObject {
             
         RunLoop.current.add(timer!, forMode: .default)
     }
-       
-   func stopLoggingTimer() {
-       loggingTimer?.invalidate()
-       loggingTimer = nil
-   }
-       
+
     private func updateElapsedTime() {
         guard let startTime = startTime else { return }
         let elapsedTime = Date().timeIntervalSince(startTime)
