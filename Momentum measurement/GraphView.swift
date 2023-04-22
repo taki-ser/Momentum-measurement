@@ -11,7 +11,7 @@ import Charts
 
 struct GraphView: View {
     @ObservedObject var sensorDataManager: SensorDataManager
-    @State private var isMeasuring = false
+    @State var isMeasuring = false
     @Binding var listOfPath: [URL]
     @State var selectedFolderIndex: Int = 0
     init(timeCounter: TimeCounter, listOfPath: Binding<[URL]>) {
@@ -21,24 +21,27 @@ struct GraphView: View {
 
     var body: some View {
         VStack {
-            Text("Graph View")
-                .font(.title)
+//            Text("Graph View")
+//                .font(.title)
+            
             Text(sensorDataManager.timeCounter.elapsedTimeString)
                 .font(.system(size: 40, design: .monospaced))
                 .padding()
-            Button(isMeasuring ? "Stop Measuring" : "Start Measuring") {
-                            isMeasuring.toggle()
-                            if isMeasuring {
-                                sensorDataManager.startLogging()
-                                sensorDataManager.timeCounter.startTimer()
-                            } else {
-                                sensorDataManager.stopLogging(selectedURL: listOfPath[selectedFolderIndex])
-                                sensorDataManager.timeCounter.resetTimer()
-                            }
-                        }
-                .background(Color.blue)
-                .foregroundColor(Color.white)
-                .cornerRadius(5)
+            Chart(sensorDataManager.sampledData) { data in
+                LineMark(
+                    x: .value("time", data.time),
+                    y: .value("value", data.value)
+                )
+                .foregroundStyle(by: .value("Form", data.from))
+                .lineStyle(StrokeStyle(lineWidth: 1))
+                .interpolationMethod(.catmullRom)
+            }
+//                .background(Color.gray.opacity(0.3)) // グラフの背景色を変更
+                .frame(height: 300)
+                .padding()
+                .chartXScale(domain: sensorDataManager.minTime...sensorDataManager.maxTime)
+                .chartYScale(domain: sensorDataManager.minValue...sensorDataManager.maxValue)
+        
             
             HStack {
                 Spacer()
@@ -54,40 +57,55 @@ struct GraphView: View {
                     .pickerStyle(WheelPickerStyle())
                 Spacer()
             }
-            Chart(sensorDataManager.sampledData) { data in
-                        LineMark(
-                            x: .value("time", data.t),
-                            y: .value("value", data.y)
-                        )
-                        .foregroundStyle(by: .value("Form", data.from))
-                        .lineStyle(StrokeStyle(lineWidth: 1))
-                        .interpolationMethod(.catmullRom)
-                    }
-                    .frame(height: 300)
-                    .padding()
+//            Spacer()
+            Button(isMeasuring ? "Stop Measuring" : "Start Measuring") {
+                            isMeasuring.toggle()
+                            if isMeasuring {
+                                sensorDataManager.startLogging()
+                                sensorDataManager.timeCounter.startTimer(){_ in}
+                            } else {
+                                sensorDataManager.stopLogging(selectedURL: listOfPath[selectedFolderIndex])
+                                sensorDataManager.timeCounter.resetTimer()
+                            }
+            }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+//                .background(Color.blue)
+//                .foregroundColor(Color.white)
+//                .cornerRadius(5)
+               
             Spacer()
         }
         .onAppear(){
             listOfPath = updateListOfPath()
         }
+        
     }
 }
 
 class SensorDataManager: ObservableObject {
+    let timeOfView = 5 //表示秒数
+     //1秒あたりのデータ取得
+    let sampleCount = 3 //今回はaccereration.xyz
+//    let maxSamples = timeArchive * 100 * 3// 10秒間分のサンプル数 (1秒あたり60サンプル)
+    let maxSamples: Int
     @Published var sampledData: [SampledData] = []
     private let motionManager = CMMotionManager()
 //    private var timer: Timer?
-    private var csvText = "timestamp,orientation_x,orientation_y,orientation_z,orientation_w,rotation_rate_x,rotation_rate_y,rotation_rate_z,gravity_x,gravity_y,gravity_z,acceleration_x,acceleration_y,acceleration_z,magnetic_field_x,magnetic_field_y,magnetic_field_z\n"
+    private var csvText = "timestamp,elapsedTime,orientation_x,orientation_y,orientation_z,orientation_w,rotation_rate_x,rotation_rate_y,rotation_rate_z,gravity_x,gravity_y,gravity_z,acceleration_x,acceleration_y,acceleration_z,magnetic_field_x,magnetic_field_y,magnetic_field_z\n"
     @Published var timeCounter: TimeCounter
 
     init( timeCounter: TimeCounter) {
         self.timeCounter = timeCounter
+        maxSamples = timeOfView * timeCounter.samplingRate * sampleCount// 5秒間分のサンプル数 (1秒あたり60サンプル)*データ種類3xyz
     }
     func startLogging() {
+        print("カウントスタート時\(self.sampledData.count)")
         if motionManager.isDeviceMotionAvailable {
-            motionManager.deviceMotionUpdateInterval = 1.0 / 60.0
+            motionManager.deviceMotionUpdateInterval = 1.0 / Double(timeCounter.samplingRate)
             motionManager.startDeviceMotionUpdates(using: .xArbitraryCorrectedZVertical)
-            timeCounter.timer = Timer(fire: Date(), interval: (1.0 / 60.0), repeats: true) { [weak self] timer in
+//            timer = Timer(fire: Date(), interval: (1.0 / 60.0), repeats: true) { [weak self] timer in
+            timeCounter.startTimer { [weak self] timer in
                 if let data = self?.motionManager.deviceMotion {
                     let timestamp = String(format: "%.2f", data.timestamp)
                     let elapsedTime = self?.timeCounter.elapsedTime ?? 0
@@ -96,21 +114,33 @@ class SensorDataManager: ObservableObject {
                     let gravity = data.gravity
                     let acceleration = data.userAcceleration
                     let magneticField = data.magneticField.field
-                    let row = "\(timestamp),\(orientation.x),\(orientation.y),\(orientation.z),\(orientation.w),\(rotationRate.x),\(rotationRate.y),\(rotationRate.z),\(gravity.x),\(gravity.y),\(gravity.z),\(acceleration.x),\(acceleration.y),\(acceleration.z),\(magneticField.x),\(magneticField.y),\(magneticField.z)\n"
+                    let row = "\(timestamp),\(elapsedTime),\(orientation.x),\(orientation.y),\(orientation.z),\(orientation.w),\(rotationRate.x),\(rotationRate.y),\(rotationRate.z),\(gravity.x),\(gravity.y),\(gravity.z),\(acceleration.x),\(acceleration.y),\(acceleration.z),\(magneticField.x),\(magneticField.y),\(magneticField.z)\n"
                     self?.csvText.append(row)
-                    self?.sampledData.append(.init(name: timestamp,t: elapsedTime, y: acceleration.x, from: "acceleration.x"))
-                    self?.sampledData.append(.init(name: timestamp,t: elapsedTime, y: acceleration.x, from: "orientation.x"))
+                    self?.sampledData.append(.init(name: timestamp,time: elapsedTime, value: acceleration.x, from: "acceleration.x"))
+                    self?.sampledData.append(.init(name: timestamp,time: elapsedTime, value: acceleration.y, from: "orientation.y"))
+                    self?.sampledData.append(.init(name: timestamp,time: elapsedTime, value: acceleration.z, from: "acceleration.z"))
+                    // 最新の10秒分のデータのみを保持
+                    print("カウント\(self?.sampledData.count ?? 0), マックス \(self?.maxSamples ?? 0)")
+                    if self?.sampledData.count ?? 0 >= self?.maxSamples ?? 0 {
+                        self?.sampledData.removeFirst(3)
+                       
+                    }
                 }
             }
             
-            RunLoop.current.add(timeCounter.timer!, forMode: .default)
+//            RunLoop.current.add(Loggingtimer!, forMode: .default)
         }
     }
 
     func stopLogging(selectedURL: URL) {
+        print("カウントストップ時\(self.sampledData.count)")
         motionManager.stopDeviceMotionUpdates()
         timeCounter.timer?.invalidate()
         writeDataToCSV(atURL: selectedURL)
+        self.sampledData.removeAll()//記録が終わったら表示を止める
+        print("カウントリセット時\(self.sampledData.count)")
+        timeCounter.elapsedTime = 0
+        
     }
 
     func writeDataToCSV(atURL: URL) {
@@ -127,6 +157,21 @@ class SensorDataManager: ObservableObject {
             print("Error writing data to csv file: \(error.localizedDescription)")
         }
     }
+    // グラフのx軸の最小値と最大値を計算
+    var minTime: Double {
+        return max(0, timeCounter.elapsedTime - Double(timeOfView))
+    }
+
+    var maxTime: Double {
+        return max(timeCounter.elapsedTime, 5)
+    }
+    
+    var minValue: Double {
+        return min(-2.5, sampledData.min { $0.value < $1.value }?.value ?? 0.0)
+    }
+    var maxValue: Double {
+        return max(sampledData.max { $0.value < $1.value }?.value ?? 0.0, 2.5)
+    }
 }
 
 struct GraphView_Previews: PreviewProvider {
@@ -136,16 +181,18 @@ struct GraphView_Previews: PreviewProvider {
 }
 
 class TimeCounter: ObservableObject {
+    let samplingRate = 60
     @Published var elapsedTimeString: String = "00:00:00.00"
+    @Published var loggingTimer: Timer?
     var startTime: Date?
     var timer: Timer?
     @Published var elapsedTime: Double = 0
-    func startTimer() {
-       startTime = Date()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { _ in
-           self.updateElapsedTime()
-       }
-    }
+//    func startTimer() {
+//       startTime = Date()
+//        timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { _ in
+//           self.updateElapsedTime()
+//       }
+//    }
     func resetTimer() {
         timer?.invalidate()
         timer = nil
@@ -153,13 +200,22 @@ class TimeCounter: ObservableObject {
         elapsedTimeString = "00:00:00.00"
     }
 
+    func startTimer(action: @escaping (Timer) -> Void) {
+        startTime = Date()
+        timer = Timer(fire: Date(), interval: 1.0/Double(samplingRate), repeats: true) { timer in
+            self.updateElapsedTime()
+            action(timer)
+        }
+            
+        RunLoop.current.add(timer!, forMode: .default)
+    }
+       
+   func stopLoggingTimer() {
+       loggingTimer?.invalidate()
+       loggingTimer = nil
+   }
+       
     private func updateElapsedTime() {
-//        guard let startTime = startTime else { return }
-//        elapsedTime = Int(Date().timeIntervalSince(startTime))
-//        let hours = elapsedTime / 3600
-//        let minutes = (elapsedTime % 3600) / 60
-//        let seconds = elapsedTime % 60
-//        elapsedTimeString = String(format: "%02d:%02d:%02d", hours, minutes, seconds)
         guard let startTime = startTime else { return }
         let elapsedTime = Date().timeIntervalSince(startTime)
         let hours = Int(elapsedTime / 3600)
@@ -181,60 +237,7 @@ class TimeCounter: ObservableObject {
 struct SampledData: Identifiable {
     var id: String { name }
     let name: String
-//    let accelerationData: Double
-    let t: Double
-//    let x: Double
-    let y: Double
+    let time: Double
+    let value: Double
     let from: String
 }
-
-//struct SampleData: Identifiable {
-//    var id: String { name }
-//    let name: String
-//    let amount: Double
-//    let from: String
-//    let accelerationData: Double = 0
-//    let x: Double = 0
-//    let y: Double = 0
-//}
-//let sampleData: [SampleData] = [
-//    .init(name: "NameA", amount: 2500, from: "PlaceA"),
-//    .init(name: "NameB", amount: 3500, from: "PlaceA"),
-//    .init(name: "NameC", amount: 2000, from: "PlaceA"),
-//    .init(name: "NameD", amount: 4000, from: "PlaceA"),
-//    .init(name: "NameE", amount: 500,from: "PlaceA"),
-//    .init(name: "NameF", amount: 5500,from: "PlaceA"),
-//    .init(name: "NameA", amount: 360, from: "PlaceB"),
-//    .init(name: "NameB", amount: 640, from: "PlaceB"),
-//    .init(name: "NameC", amount: 680, from: "PlaceB"),
-//    .init(name: "NameD", amount: 760, from: "PlaceB"),
-//    .init(name: "NameE", amount: 780, from: "PlaceB"),
-//    .init(name: "NameF", amount: 800, from: "PlaceB")
-//]
-//struct LineMarkView: View {
-//    var body: some View {
-//        Chart(sampleData) { data in
-//            LineMark(
-//                x: .value("Name", data.name),
-//                y: .value("Amount", data.amount)
-//            )
-//            .foregroundStyle(by: .value("Form", data.from))
-//            .lineStyle(StrokeStyle(lineWidth: 1))
-//            .interpolationMethod(.catmullRom)
-//        }
-//        .frame(height: 300)
-//        .padding()
-//    }
-//}
-//
-//struct CoontentView: View {
-//    var body: some View {
-//        LineMarkView()
-//    }
-//}
-//struct GraphView2_Previews: PreviewProvider {
-//
-//    static var previews: some View {
-//        LineMarkView()
-//    }
-//}

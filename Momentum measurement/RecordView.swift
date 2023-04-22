@@ -113,38 +113,7 @@ struct RecordView: View {
                 }
     }
 
-//    func shareSelectedItems() {
-//        var itemsToShare = [Any]()
-//
-//        for item in selectedItems {
-//            let activityItem = item
-//            itemsToShare.append(activityItem)
-//        }
-//
-//        let activityViewController = UIActivityViewController(activityItems: itemsToShare, applicationActivities: nil)
-//
-//        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene, let window = windowScene.windows.first {
-//            activityViewController.popoverPresentationController?.sourceView = window
-//
-//            activityViewController.excludedActivityTypes = [.postToFacebook, .postToTwitter, .addToReadingList, .postToVimeo]
-//
-//            if UIDevice.current.userInterfaceIdiom == .pad {
-//                activityViewController.popoverPresentationController?.sourceRect = CGRect(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 4, width: 0, height: 0)
-//            }
-//
-//            window.rootViewController?.present(activityViewController, animated: true, completion: nil)
-//        }
-//    }
-//    func shareSelectedItems() {
-//        var itemsToShare = [Any]()
-//
-//        for item in selectedItems {
-//            let activityItem = item
-//            itemsToShare.append(activityItem)
-//        }
-//
-//        isSharing = true
-//    }
+
     func shareSelectedItems() {
            var itemsToShare = [Any]()
 
@@ -207,31 +176,7 @@ struct RecordView: View {
 
 }
 
-//struct ShareSheet: UIViewControllerRepresentable {
-//    var items: [Any]
-//
-//    func makeUIViewController(context: Context) -> UIActivityViewController {
-//        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
-//        controller.excludedActivityTypes = [.postToFacebook, .postToTwitter, .addToReadingList, .postToVimeo]
-//        return controller
-//    }
-//
-//    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
-//    }
-//}
 
-//struct ShareSheet: UIViewControllerRepresentable {
-//    var items: [Any]
-//
-//    func makeUIViewController(context: Context) -> UIActivityViewController {
-//        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
-//        controller.excludedActivityTypes = [.postToFacebook, .postToTwitter, .addToReadingList, .postToVimeo]
-//        return controller
-//    }
-//
-//    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
-//    }
-//}
 struct ShareSheet: UIViewControllerRepresentable {
     var items: [Any]
 
@@ -275,23 +220,23 @@ struct ItemCell: View {
 //                                })
 //                            })
                         })
-                        .onLongPressGesture {
-                            showContextMenu = true
-                        }
+//                        .onLongPressGesture {
+//                            showContextMenu = true
+//                        }
 
                 }
             } else {
                 /// ファイル
                 Image(systemName: "doc.text")
                 Text(url.lastPathComponent)
-                    .contextMenu(menuItems: {
-                        Button("Copy", action: {
-                            UIPasteboard.general.string = url.lastPathComponent
-                        })
-                    })
-                    .onLongPressGesture {
-                        showContextMenu = true
-                    }
+//                    .contextMenu(menuItems: {
+//                        Button("Copy", action: {
+//                            UIPasteboard.general.string = url.lastPathComponent
+//                        })
+//                    })
+//                    .onLongPressGesture {
+//                        showContextMenu = true
+//                    }
             }
         }
     }
