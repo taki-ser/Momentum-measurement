@@ -99,6 +99,7 @@ class SensorDataManager: ObservableObject {
         maxSamples = timeOfView * timeCounter.samplingRate * sampleCount// 5秒間分のサンプル数 (1秒あたり60サンプル)*データ種類3xyz
     }
     func startLogging() {
+        self.sampledData.removeAll()//前回までの記録
         print("カウントスタート時\(self.sampledData.count)")
         var count = 0
         if motionManager.isDeviceMotionAvailable {
@@ -119,7 +120,7 @@ class SensorDataManager: ObservableObject {
 //                    self?.sampledData.append(.init(name: timestamp,time: elapsedTime, value: acceleration.x, from: "acceleration.x"))
 //                    self?.sampledData.append(.init(name: timestamp,time: elapsedTime, value: acceleration.y, from: "orientation.y"))
 //                    self?.sampledData.append(.init(name: timestamp,time: elapsedTime, value: acceleration.z, from: "acceleration.z"))
-                    self?.sampledData.append(contentsOf: [.init(name: timestamp,time: elapsedTime, value: acceleration.x, from: "acceleration.x"), .init(name: timestamp,time: elapsedTime, value: acceleration.y, from: "orientation.y"), .init(name: timestamp,time: elapsedTime, value: acceleration.z, from: "acceleration.z")])
+                    self?.sampledData.append(contentsOf: [.init(name: timestamp,time: elapsedTime, value: acceleration.x, from: "acceleration.x"), .init(name: timestamp,time: elapsedTime, value: acceleration.y, from: "acceleration.y"), .init(name: timestamp,time: elapsedTime, value: acceleration.z, from: "acceleration.z")])
                     // 最新の5秒分のデータのみを保持
                     print("カウント\(self?.sampledData.count ?? 0), 番号 \(count)")
                     if self?.sampledData.count ?? 0 >= self?.maxSamples ?? 0 {
@@ -139,8 +140,6 @@ class SensorDataManager: ObservableObject {
         print("カウントストップ時\(self.sampledData.count)")
         motionManager.stopDeviceMotionUpdates()
         writeDataToCSV(atURL: selectedURL)
-        self.sampledData.removeAll()//記録が終わったら表示を止める
-        print("カウントリセット時\(self.sampledData.count)")
     }
 
     func writeDataToCSV(atURL: URL) {
@@ -197,11 +196,11 @@ class TimeCounter: ObservableObject {
         timer?.invalidate()
         timer = nil
         startTime = nil
-        elapsedTimeString = "00:00:00.00"
-        elapsedTime = 0
     }
 
     func startTimer(action: @escaping (Timer) -> Void) {
+        elapsedTime = 0
+        elapsedTimeString = "00:00:00.00"
         startTime = Date()
         timer = Timer(fire: Date(), interval: 1.0/Double(samplingRate), repeats: true) { timer in
             self.updateElapsedTime()
