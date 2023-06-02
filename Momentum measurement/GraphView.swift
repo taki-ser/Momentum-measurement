@@ -10,6 +10,10 @@ import CoreMotion
 import Charts
 
 struct GraphView: View {
+//    @State private var selectedHour = 0
+    @State private var selectedItervalSecond = 0
+    @State private var selectedCoolSecond = 0
+    
     @ObservedObject var sensorDataManager: SensorDataManager
     @State var isMeasuring = false
     @Binding var listOfPath: [URL]
@@ -37,7 +41,7 @@ struct GraphView: View {
                 .interpolationMethod(.catmullRom)
             }
 //                .background(Color.gray.opacity(0.3)) // グラフの背景色を変更
-                .frame(height: 300)
+                .frame(height: 200)
                 .padding()
                 .chartXScale(domain: sensorDataManager.minTime...sensorDataManager.maxTime)
                 .chartYScale(domain: sensorDataManager.minValue...sensorDataManager.maxValue)
@@ -55,23 +59,50 @@ struct GraphView: View {
                     }
                 }
                     .pickerStyle(WheelPickerStyle())
+                    .frame(height: 60)
+                    .clipped()
                 Spacer()
             }
 //            Spacer()
+            HStack {
+                Toggle("インターバル",isOn: $sensorDataManager.timeCounter.isIntervalMeasuring)
+                HStack {
+                    Picker(selection: $selectedItervalSecond, label: Text("Interval")) {
+                                   ForEach(0 ..< 60) { intervalSecond in
+                                       Text("\(intervalSecond)")
+                                   }
+                               }
+                               .pickerStyle(WheelPickerStyle())
+                               .frame(width: 100, height: 60)
+                               .clipped()
+                               .disabled(!sensorDataManager.timeCounter.isIntervalMeasuring)
+
+                    Picker(selection: $selectedCoolSecond, label: Text("CoolTime")) {
+                                   ForEach(0 ..< 60) { coolSecond in
+                                       Text("\(coolSecond)")
+                                   }
+                               }
+                               .pickerStyle(WheelPickerStyle())
+                               .frame(width: 100, height: 60)
+                               .clipped()
+                               .disabled(!sensorDataManager.timeCounter.isIntervalMeasuring)
+                           }
+            }
             Button(isMeasuring ? "Stop Measuring" : "Start Measuring") {
-                            isMeasuring.toggle()
-                            if isMeasuring {
-                                sensorDataManager.startLogging()
-                            } else {
-                                sensorDataManager.stopLogging(selectedURL: listOfPath[selectedFolderIndex])
-                                sensorDataManager.timeCounter.resetTimer()
-                            }
+                isMeasuring.toggle()
+                if isMeasuring {
+                    sensorDataManager.timeCounter.timeOfInterval = Double(selectedItervalSecond)
+                    sensorDataManager.timeCounter.coolTime = Double(selectedCoolSecond)
+                    sensorDataManager.url = listOfPath[selectedFolderIndex]
+                    sensorDataManager.startLogging()
+                } else {
+                    sensorDataManager.stopLogging(selectedURL: listOfPath[selectedFolderIndex])
+                    sensorDataManager.timeCounter.resetTimer()
+                    sensorDataManager.stopInterval()
+                }
             }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-//                .background(Color.blue)
-//                .foregroundColor(Color.white)
-//                .cornerRadius(5)
                
             Spacer()
         }
@@ -83,6 +114,8 @@ struct GraphView: View {
 }
 
 class SensorDataManager: ObservableObject {
+    @Published var url =  URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0])
+    @Published var intervalTimer: Timer?
     let timeOfView = 5 //表示秒数
      //1秒あたりのデータ取得
     let sampleCount = 3 //今回はaccereration.xyz
@@ -98,10 +131,10 @@ class SensorDataManager: ObservableObject {
         self.timeCounter = timeCounter
         maxSamples = timeOfView * timeCounter.samplingRate * sampleCount// 5秒間分のサンプル数 (1秒あたり60サンプル)*データ種類3xyz
     }
-    func startLogging() {
+    func loggingMotion() {
         self.sampledData.removeAll()//前回までの記録
         print("カウントスタート時\(self.sampledData.count)")
-        var count = 0
+//        var count = 0
         if motionManager.isDeviceMotionAvailable {
             motionManager.deviceMotionUpdateInterval = 1.0 / Double(timeCounter.samplingRate)
             motionManager.startDeviceMotionUpdates(using: .xArbitraryCorrectedZVertical)
@@ -122,12 +155,12 @@ class SensorDataManager: ObservableObject {
 //                    self?.sampledData.append(.init(name: timestamp,time: elapsedTime, value: acceleration.z, from: "acceleration.z"))
                     self?.sampledData.append(contentsOf: [.init(name: timestamp,time: elapsedTime, value: acceleration.x, from: "acceleration.x"), .init(name: timestamp,time: elapsedTime, value: acceleration.y, from: "acceleration.y"), .init(name: timestamp,time: elapsedTime, value: acceleration.z, from: "acceleration.z")])
                     // 最新の5秒分のデータのみを保持
-                    print("カウント\(self?.sampledData.count ?? 0), 番号 \(count)")
+//                    print("カウント\(self?.sampledData.count ?? 0), 番号 \(count)")
                     if self?.sampledData.count ?? 0 >= self?.maxSamples ?? 0 {
                         self?.sampledData.removeFirst(3)
                        
                     }
-                    count = count+1
+//                    count = count+1
                     
                 }
             }
@@ -136,12 +169,48 @@ class SensorDataManager: ObservableObject {
         }
     }
 
-    func stopLogging(selectedURL: URL) {
-        print("カウントストップ時\(self.sampledData.count)")
-        motionManager.stopDeviceMotionUpdates()
-        writeDataToCSV(atURL: selectedURL)
+//    func startLogging() {
+//        loggingMotion()
+//    }
+//
+//    func stopLogging(selectedURL: URL) {
+////        print("カウントストップ時\(self.sampledData.count)")
+//        motionManager.stopDeviceMotionUpdates()
+//        writeDataToCSV(atURL: selectedURL)
+//    }
+    func startLogging() {
+            if timeCounter.isIntervalMeasuring {
+                startIntervalLogging()
+            } else {
+                loggingMotion()
+            }
+        }
+
+    func startIntervalLogging() {
+        intervalTimer = Timer.scheduledTimer(withTimeInterval: timeCounter.timeOfInterval + timeCounter.coolTime, repeats: true) { [weak self] _ in
+            self?.loggingMotion()
+            DispatchQueue.main.asyncAfter(deadline: .now() + self!.timeCounter.timeOfInterval) {
+                self?.stopLogging(selectedURL: self!.url)
+            }
+        }
     }
 
+    
+    func stopLogging(selectedURL: URL) {
+        motionManager.stopDeviceMotionUpdates()
+        writeDataToCSV(atURL: selectedURL)
+//        if timeCounter.isIntervalMeasuring {
+//            intervalTimer?.invalidate()
+//            intervalTimer = nil
+//        }
+        
+    }
+    func stopInterval() {
+        if timeCounter.isIntervalMeasuring {
+            intervalTimer?.invalidate()
+            intervalTimer = nil
+        }
+    }
     func writeDataToCSV(atURL: URL) {
         let FileName = timeCounter.getFileName()
         guard let url = atURL.appendingPathComponent(FileName) as URL? else {
@@ -180,18 +249,16 @@ struct GraphView_Previews: PreviewProvider {
 }
 
 class TimeCounter: ObservableObject {
+    @Published var isIntervalMeasuring = false
+    @Published var timeOfInterval: Double = 0
+    @Published var coolTime: Double = 0
+
     let samplingRate = 60
     @Published var elapsedTimeString: String = "00:00:00.00"
     @Published var loggingTimer: Timer?
     var startTime: Date?
     var timer: Timer?
     @Published var elapsedTime: Double = 0
-//    func startTimer() {
-//       startTime = Date()
-//        timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { _ in
-//           self.updateElapsedTime()
-//       }
-//    }
     func resetTimer() {
         timer?.invalidate()
         timer = nil
@@ -206,10 +273,30 @@ class TimeCounter: ObservableObject {
             self.updateElapsedTime()
             action(timer)
         }
-            
+
         RunLoop.current.add(timer!, forMode: .default)
     }
-
+//    func startTimer(action: @escaping (Timer) -> Void) {
+//           elapsedTime = 0
+//           elapsedTimeString = "00:00:00.00"
+//           startTime = Date()
+//
+//           timer = Timer(fire: Date(), interval: 1.0/Double(samplingRate), repeats: true) { timer in
+//               if self.isIntervalMeasuring {
+//                   if Int(self.elapsedTime) % (Int(self.timeOfInterval) + Int(self.coolTime)) < Int(self.timeOfInterval) {
+//                       self.updateElapsedTime()
+//                       action(timer)
+//                   } else {
+//                       self.updateElapsedTime()
+//                   }
+//               } else {
+//                   self.updateElapsedTime()
+//                   action(timer)
+//               }
+//           }
+//
+//           RunLoop.current.add(timer!, forMode: .default)
+//       }
     private func updateElapsedTime() {
         guard let startTime = startTime else { return }
         let elapsedTime = Date().timeIntervalSince(startTime)
